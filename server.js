@@ -54,42 +54,52 @@ function isMatch(a, b) {
   return explicitlyMatched || (aWantsB && bWantsA);
 }
 
+function isQuotaOrTransientError(err) {
+  const msg = String(err?.message || "");
+  const code = err?.status || err?.code;
+  return (
+    code === 429 ||
+    code === 503 ||
+    code === 404 ||
+    msg.includes("429") ||
+    msg.includes("RESOURCE_EXHAUSTED") ||
+    msg.includes("503") ||
+    msg.includes("UNAVAILABLE") ||
+    msg.includes("404") ||
+    msg.includes("NOT_FOUND")
+  );
+}
+
 async function verifyWithGeminiFallback(cleanB64, checkPrompt) {
+  if (!gemini) return null;
   const models = ["gemini-3.8-flash", "gemini-3.1-flash-lite"];
   for (const model of models) {
-    for (let attempt = 1; attempt <= 2; attempt++) {
-      try {
-        const resp = await gemini.models.generateContent({
-          model,
-          contents: [
-            {
-              role: "user",
-              parts: [
-                { text: checkPrompt },
-                { inlineData: { mimeType: "image/png", data: cleanB64 } },
-              ],
-            },
-          ],
-        });
-        const raw = (resp.text || "").replace(/```json|```/g, "").trim();
-        return JSON.parse(raw);
-      } catch (err) {
-        const msg = String(err?.message || "");
-        const is503 = msg.includes("503") || msg.includes("UNAVAILABLE") || err?.status === 503;
-        const is404 = msg.includes("404") || msg.includes("NOT_FOUND") || err?.status === 404;
-        if (is503 && attempt < 2) {
-          await new Promise((r) => setTimeout(r, 1200));
-          continue;
-        }
-        if (is503 || is404) break;
-        throw err;
+    try {
+      const resp = await gemini.models.generateContent({
+        model,
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { text: checkPrompt },
+              { inlineData: { mimeType: "image/png", data: cleanB64 } },
+            ],
+          },
+        ],
+      });
+      const raw = (resp.text || "").replace(/```json|```/g, "").trim();
+      return JSON.parse(raw);
+    } catch (err) {
+      if (isQuotaOrTransientError(err)) {
+        continue;
       }
+      throw err;
     }
   }
   return null;
 }
 
-async function generateRealisticPortrait(prompt) {
+async function generateRealisticPortrait(prompt, fallbackSelfie = "") {
   if (process.env.CLOUDFLARE_ACCOUNT_ID && process.env.CLOUDFLARE_API_TOKEN) {
     try {
       const cfResp = await fetch(
@@ -130,21 +140,27 @@ async function generateRealisticPortrait(prompt) {
     }
   }
 
-  const seed = Math.floor(Math.random() * 999999);
-  const polUrl = process.env.POLLINATIONS_API_KEY
-    ? `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?model=flux&width=512&height=512&seed=${seed}`
-    : `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=512&height=512&seed=${seed}`;
-  const headers = { "User-Agent": "Mozilla/5.0 HeartLoungeCity/5.2" };
-  if (process.env.POLLINATIONS_API_KEY) {
-    headers.Authorization = `Bearer ${process.env.POLLINATIONS_API_KEY}`;
-  }
-  const polResp = await fetch(polUrl, { headers });
-  if (polResp.ok) {
-    const buf = Buffer.from(await polResp.arrayBuffer());
-    const mime = polResp.headers.get("content-type") || "image/jpeg";
-    if (mime.startsWith("image/")) {
-      return `data:${mime};base64,${buf.toString("base64")}`;
+  try {
+    const seed = Math.floor(Math.random() * 999999);
+    const polUrl = process.env.POLLINATIONS_API_KEY
+      ? `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?model=flux&width=512&height=512&seed=${seed}`
+      : `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=512&height=512&seed=${seed}`;
+    const headers = { "User-Agent": "Mozilla/5.0 HeartLoungeCity/5.3" };
+    if (process.env.POLLINATIONS_API_KEY) {
+      headers.Authorization = `Bearer ${process.env.POLLINATIONS_API_KEY}`;
     }
+    const polResp = await fetch(polUrl, { headers });
+    if (polResp.ok) {
+      const buf = Buffer.from(await polResp.arrayBuffer());
+      const mime = polResp.headers.get("content-type") || "image/jpeg";
+      if (mime.startsWith("image/")) {
+        return `data:${mime};base64,${buf.toString("base64")}`;
+      }
+    }
+  } catch (_e) {}
+
+  if (fallbackSelfie) {
+    return fallbackSelfie;
   }
 
   throw new Error("Could not generate character portrait right now. Please try again.");
@@ -189,7 +205,6 @@ app.post("/api/verify-and-create", async (req, res) => {
     }
 
     let appearanceTraits = `real ${gender.toLowerCase()} with warm smile, natural features, stylish casual outfit`;
-    let verified = true;
 
     if (gemini) {
       const cleanB64 = String(selfieBase64).replace(/^data:image\/\w+;base64,/, "");
@@ -207,7 +222,7 @@ Reject cartoons, blank screens, objects, or unclear faces.
 
       const parsed = await verifyWithGeminiFallback(cleanB64, checkPrompt);
       if (parsed) {
-        verified = Boolean(parsed.isRealPerson && parsed.isWholesomeAndClear);
+        const verified = Boolean(parsed.isRealPerson && parsed.isWholesomeAndClear);
         if (!verified) {
           return res.status(400).json({
             verified: false,
@@ -221,7 +236,7 @@ Reject cartoons, blank screens, objects, or unclear faces.
     }
 
     const portraitPrompt = `${lookStyle} of a real ${gender.toLowerCase()}, ${appearanceTraits}, scenic lake and sunset cliffs in soft background, expressive eyes, warm friendly smile, clean detail`;
-    const avatarUrl = await generateRealisticPortrait(portraitPrompt);
+    const avatarUrl = await generateRealisticPortrait(portraitPrompt, selfieBase64);
     const startSpot = vibe || "Sunset Cliffs Overlooking the Lake";
     const coords = coordsForSpot(startSpot);
 

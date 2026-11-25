@@ -54,6 +54,39 @@ function isMatch(a, b) {
   return explicitlyMatched || (aWantsB && bWantsA);
 }
 
+async function verifyWithGeminiFallback(cleanB64, checkPrompt) {
+  const models = ["gemini-3.8-flash", "gemini-2.5-flash"];
+  for (const model of models) {
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const resp = await gemini.models.generateContent({
+          model,
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { text: checkPrompt },
+                { inlineData: { mimeType: "image/png", data: cleanB64 } },
+              ],
+            },
+          ],
+        });
+        const raw = (resp.text || "").replace(/```json|```/g, "").trim();
+        return JSON.parse(raw);
+      } catch (err) {
+        const msg = String(err?.message || "");
+        const is503 = msg.includes("503") || msg.includes("UNAVAILABLE") || err?.status === 503;
+        if (is503 && attempt < 2) {
+          await new Promise((r) => setTimeout(r, 1200));
+          continue;
+        }
+        if (!is503) throw err;
+      }
+    }
+  }
+  return null;
+}
+
 async function generateRealisticPortrait(prompt) {
   if (process.env.CLOUDFLARE_ACCOUNT_ID && process.env.CLOUDFLARE_API_TOKEN) {
     try {
@@ -99,7 +132,7 @@ async function generateRealisticPortrait(prompt) {
   const polUrl = process.env.POLLINATIONS_API_KEY
     ? `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?model=flux&width=512&height=512&seed=${seed}`
     : `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=512&height=512&seed=${seed}`;
-  const headers = { "User-Agent": "Mozilla/5.0 HeartLoungeCity/5.0" };
+  const headers = { "User-Agent": "Mozilla/5.0 HeartLoungeCity/5.1" };
   if (process.env.POLLINATIONS_API_KEY) {
     headers.Authorization = `Bearer ${process.env.POLLINATIONS_API_KEY}`;
   }
@@ -170,30 +203,18 @@ Inspect this photo and return ONLY valid JSON:
 Reject cartoons, blank screens, objects, or unclear faces.
       `.trim();
 
-      const resp = await gemini.models.generateContent({
-        model: "gemini-3.8-flash",
-        contents: [
-          {
-            role: "user",
-            parts: [
-              { text: checkPrompt },
-              { inlineData: { mimeType: "image/png", data: cleanB64 } },
-            ],
-          },
-        ],
-      });
-
-      const raw = (resp.text || "").replace(/```json|```/g, "").trim();
-      const parsed = JSON.parse(raw);
-      verified = Boolean(parsed.isRealPerson && parsed.isWholesomeAndClear);
-      if (!verified) {
-        return res.status(400).json({
-          verified: false,
-          error: parsed.reason || "Photo could not be verified. Please upload a clear real selfie.",
-        });
-      }
-      if (parsed.likenessDescription) {
-        appearanceTraits = parsed.likenessDescription;
+      const parsed = await verifyWithGeminiFallback(cleanB64, checkPrompt);
+      if (parsed) {
+        verified = Boolean(parsed.isRealPerson && parsed.isWholesomeAndClear);
+        if (!verified) {
+          return res.status(400).json({
+            verified: false,
+            error: parsed.reason || "Photo could not be verified. Please upload a clear real selfie.",
+          });
+        }
+        if (parsed.likenessDescription) {
+          appearanceTraits = parsed.likenessDescription;
+        }
       }
     }
 

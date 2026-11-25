@@ -55,7 +55,7 @@ function isMatch(a, b) {
 }
 
 async function verifyWithGeminiFallback(cleanB64, checkPrompt) {
-  const models = ["gemini-3.8-flash", "gemini-2.5-flash"];
+  const models = ["gemini-3.8-flash", "gemini-3.1-flash-lite"];
   for (const model of models) {
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
@@ -76,11 +76,13 @@ async function verifyWithGeminiFallback(cleanB64, checkPrompt) {
       } catch (err) {
         const msg = String(err?.message || "");
         const is503 = msg.includes("503") || msg.includes("UNAVAILABLE") || err?.status === 503;
+        const is404 = msg.includes("404") || msg.includes("NOT_FOUND") || err?.status === 404;
         if (is503 && attempt < 2) {
           await new Promise((r) => setTimeout(r, 1200));
           continue;
         }
-        if (!is503) throw err;
+        if (is503 || is404) break;
+        throw err;
       }
     }
   }
@@ -132,7 +134,7 @@ async function generateRealisticPortrait(prompt) {
   const polUrl = process.env.POLLINATIONS_API_KEY
     ? `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?model=flux&width=512&height=512&seed=${seed}`
     : `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=512&height=512&seed=${seed}`;
-  const headers = { "User-Agent": "Mozilla/5.0 HeartLoungeCity/5.1" };
+  const headers = { "User-Agent": "Mozilla/5.0 HeartLoungeCity/5.2" };
   if (process.env.POLLINATIONS_API_KEY) {
     headers.Authorization = `Bearer ${process.env.POLLINATIONS_API_KEY}`;
   }

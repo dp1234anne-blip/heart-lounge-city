@@ -28,18 +28,18 @@ const groq = process.env.GROQ_API_KEY
   : null;
 
 const SPOT_COORDS = {
-  "Downtown City Plaza": { x: 140, y: 120 },
-  "Sunset Cliffs Overlooking the Lake": { x: 560, y: 85 },
-  "Lakeside Marina & Promenade": { x: 540, y: 215 },
-  "Lakeside Terrace Restaurant": { x: 350, y: 205 },
-  "Skyline Rooftop Lounge": { x: 240, y: 75 },
+  "Downtown City Plaza": { x: 150, y: 190 },
+  "Sunset Cliffs Overlooking the Lake": { x: 690, y: 120 },
+  "Lakeside Marina & Promenade": { x: 670, y: 340 },
+  "Lakeside Terrace Restaurant": { x: 420, y: 330 },
+  "Skyline Rooftop Lounge": { x: 270, y: 105 },
 };
 
 const onlinePlayers = new Map();
 const friendGroups = new Map();
 
 function coordsForSpot(spot) {
-  return SPOT_COORDS[spot] || { x: 320, y: 145 };
+  return SPOT_COORDS[spot] || { x: 220, y: 210 };
 }
 
 function isMatch(a, b) {
@@ -90,9 +90,7 @@ async function verifyWithGeminiFallback(cleanB64, checkPrompt) {
       const raw = (resp.text || "").replace(/```json|```/g, "").trim();
       return JSON.parse(raw);
     } catch (err) {
-      if (isQuotaOrTransientError(err)) {
-        continue;
-      }
+      if (isQuotaOrTransientError(err)) continue;
       throw err;
     }
   }
@@ -145,7 +143,7 @@ async function generateRealisticPortrait(prompt, fallbackSelfie = "") {
     const polUrl = process.env.POLLINATIONS_API_KEY
       ? `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?model=flux&width=512&height=512&seed=${seed}`
       : `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=512&height=512&seed=${seed}`;
-    const headers = { "User-Agent": "Mozilla/5.0 HeartLoungeCity/5.3" };
+    const headers = { "User-Agent": "Mozilla/5.0 HeartLoungeGame/1.0" };
     if (process.env.POLLINATIONS_API_KEY) {
       headers.Authorization = `Bearer ${process.env.POLLINATIONS_API_KEY}`;
     }
@@ -159,31 +157,22 @@ async function generateRealisticPortrait(prompt, fallbackSelfie = "") {
     }
   } catch (_e) {}
 
-  if (fallbackSelfie) {
-    return fallbackSelfie;
-  }
-
-  throw new Error("Could not generate character portrait right now. Please try again.");
+  return fallbackSelfie || "";
 }
 
-function moveDriverAndPassengers(driverId, newSpot) {
+function syncPassengersToDriver(driverId) {
   const driver = onlinePlayers.get(driverId);
   if (!driver) return;
-  const base = coordsForSpot(newSpot);
-  driver.spot = newSpot;
-  driver.pinnedSpot = newSpot;
-  driver.x = base.x;
-  driver.y = base.y;
-
-  let seatOffset = 1;
+  let idx = 1;
   for (const p of onlinePlayers.values()) {
     if (p.driverId === driverId) {
-      p.spot = newSpot;
-      p.pinnedSpot = newSpot;
+      p.x = Math.max(30, Math.min(870, driver.x - idx * 24));
+      p.y = Math.max(30, Math.min(410, driver.y + (idx % 2 === 0 ? 12 : -12)));
+      p.angle = driver.angle ?? 0;
+      p.spot = driver.spot;
+      p.pinnedSpot = driver.pinnedSpot;
       p.currentCar = driver.currentCar;
-      p.x = Math.min(660, base.x + seatOffset * 18);
-      p.y = Math.min(245, base.y + seatOffset * 10);
-      seatOffset += 1;
+      idx += 1;
     }
   }
 }
@@ -243,7 +232,7 @@ Reject cartoons, blank screens, objects, or unclear faces.
     res.json({
       verified: true,
       profile: {
-        name: String(name).slice(0, 28),
+        name: String(name).slice(0, 24),
         gender,
         lookingFor,
         vibe: startSpot,
@@ -253,6 +242,7 @@ Reject cartoons, blank screens, objects, or unclear faces.
         pinnedSpot: startSpot,
         x: coords.x,
         y: coords.y,
+        angle: 0,
         currentCar: "Midnight Roadster Convertible (Sports)",
         currentMeal: "Iced Caramel Latte",
         mood: "✨ Ready to Cruise",
@@ -285,7 +275,7 @@ app.post("/api/icebreaker", async (req, res) => {
 });
 
 function broadcastState() {
-  io.emit("loungeUpdate", {
+  io.emit("gameState", {
     players: Array.from(onlinePlayers.values()),
     groups: Array.from(friendGroups.values()),
   });
@@ -302,6 +292,7 @@ io.on("connection", (socket) => {
       pinnedSpot: spot,
       x: profile.x ?? coords.x,
       y: profile.y ?? coords.y,
+      angle: profile.angle ?? 0,
       currentCar: profile.currentCar || "Midnight Roadster Convertible (Sports)",
       currentMeal: profile.currentMeal || "Iced Caramel Latte",
       mood: profile.mood || "✨ Ready to Cruise",
@@ -313,61 +304,35 @@ io.on("connection", (socket) => {
     broadcastState();
   });
 
-  socket.on("moveCoords", ({ x, y }) => {
+  socket.on("playerTransform", ({ x, y, angle, spot }) => {
     const p = onlinePlayers.get(socket.id);
     if (!p) return;
     p.driverId = null;
-    p.x = Math.max(40, Math.min(680, Number(x) || p.x));
-    p.y = Math.max(40, Math.min(245, Number(y) || p.y));
-
-    let seatOffset = 1;
-    for (const other of onlinePlayers.values()) {
-      if (other.driverId === socket.id) {
-        other.x = Math.min(680, p.x + seatOffset * 18);
-        other.y = Math.min(245, p.y + seatOffset * 10);
-        other.spot = p.spot;
-        other.pinnedSpot = p.pinnedSpot;
-        seatOffset += 1;
-      }
-    }
+    p.x = Math.max(30, Math.min(870, Number(x) ?? p.x));
+    p.y = Math.max(30, Math.min(410, Number(y) ?? p.y));
+    if (typeof angle === "number") p.angle = angle;
+    if (spot) p.spot = spot;
+    syncPassengersToDriver(socket.id);
     broadcastState();
   });
 
   socket.on("setMood", ({ mood }) => {
     const p = onlinePlayers.get(socket.id);
     if (!p || !mood) return;
-    p.mood = String(mood).slice(0, 32);
+    p.mood = String(mood).slice(0, 28);
     broadcastState();
   });
 
   socket.on("pinLocation", ({ spot }) => {
     const p = onlinePlayers.get(socket.id);
     if (!p || !spot) return;
-    moveDriverAndPassengers(socket.id, spot);
-    broadcastState();
-  });
-
-  socket.on("changeSpot", ({ spot }) => {
-    const p = onlinePlayers.get(socket.id);
-    if (!p || !spot) return;
+    const coords = coordsForSpot(spot);
     p.driverId = null;
-    moveDriverAndPassengers(socket.id, spot);
-
-    if (p.groupId && friendGroups.has(p.groupId)) {
-      const grp = friendGroups.get(p.groupId);
-      grp.spot = spot;
-      grp.members.forEach((m) => {
-        const memberObj = onlinePlayers.get(m.id);
-        if (memberObj) {
-          memberObj.spot = spot;
-          memberObj.pinnedSpot = spot;
-          memberObj.driverId = null;
-        }
-      });
-      io.to(p.groupId).emit("groupEvent", {
-        text: `🚗 ${p.name} drove the group in their ${p.currentCar} to ${spot}!`,
-      });
-    }
+    p.spot = spot;
+    p.pinnedSpot = spot;
+    p.x = coords.x;
+    p.y = coords.y;
+    syncPassengersToDriver(socket.id);
     broadcastState();
   });
 
@@ -376,14 +341,12 @@ io.on("connection", (socket) => {
     if (!p || !car) return;
     p.driverId = null;
     p.currentCar = car;
-    for (const other of onlinePlayers.values()) {
-      if (other.driverId === socket.id) other.currentCar = car;
-    }
+    syncPassengersToDriver(socket.id);
     if (p.groupId && friendGroups.has(p.groupId)) {
       const grp = friendGroups.get(p.groupId);
       grp.car = car;
       io.to(p.groupId).emit("groupEvent", {
-        text: `🚘 ${p.name} pulled up with a "${car}" for the group (FREE ∞)!`,
+        text: `🚘 ${p.name} pulled up in a "${car}" for the group (FREE ∞)!`,
       });
     }
     broadcastState();
@@ -399,11 +362,11 @@ io.on("connection", (socket) => {
     passenger.spot = driver.spot;
     passenger.pinnedSpot = driver.pinnedSpot;
     passenger.currentCar = driver.currentCar;
-    passenger.x = Math.min(680, (driver.x || 320) + 18);
-    passenger.y = Math.min(245, (driver.y || 145) + 10);
 
     if (!driver.matchedIds.includes(targetId)) driver.matchedIds.push(targetId);
     if (!passenger.matchedIds.includes(socket.id)) passenger.matchedIds.push(socket.id);
+
+    syncPassengersToDriver(socket.id);
 
     io.to(targetId).emit("pickedUpInCar", {
       driverId: socket.id,
@@ -453,7 +416,7 @@ io.on("connection", (socket) => {
     const coords = coordsForSpot(targetSpot);
     me.spot = targetSpot;
     me.pinnedSpot = targetSpot;
-    me.x = Math.max(40, coords.x - 16);
+    me.x = Math.max(30, coords.x - 24);
     me.y = coords.y;
 
     if (!me.matchedIds.includes(targetId)) me.matchedIds.push(targetId);
@@ -475,11 +438,11 @@ io.on("connection", (socket) => {
   socket.on("matchOnlyChat", ({ toId, text }) => {
     const sender = onlinePlayers.get(socket.id);
     const recipient = onlinePlayers.get(toId);
-    const cleanText = String(text || "").trim().slice(0, 400);
+    const cleanText = String(text || "").trim().slice(0, 220);
     if (!sender || !recipient || !cleanText) return;
 
     if (!isMatch(sender, recipient)) {
-      socket.emit("systemNotice", `You can only chat privately with matching players (like ${recipient.name}).`);
+      socket.emit("systemNotice", `Only matching players can chat privately.`);
       return;
     }
 
@@ -502,12 +465,17 @@ io.on("connection", (socket) => {
     const groupId = `grp_${Date.now()}_${Math.floor(Math.random() * 999)}`;
     const chosenSpot = spot || me.pinnedSpot || "Sunset Cliffs Overlooking the Lake";
     const chosenMeal = meal || "Nyama Choma & Lake Tilapia Platter";
+    const coords = coordsForSpot(chosenSpot);
 
     me.driverId = null;
-    moveDriverAndPassengers(socket.id, chosenSpot);
+    me.spot = chosenSpot;
+    me.pinnedSpot = chosenSpot;
+    me.x = coords.x;
+    me.y = coords.y;
     me.currentMeal = chosenMeal;
     me.groupId = groupId;
     socket.join(groupId);
+    syncPassengersToDriver(socket.id);
 
     friendGroups.set(groupId, {
       id: groupId,
@@ -524,12 +492,17 @@ io.on("connection", (socket) => {
     const me = onlinePlayers.get(socket.id);
     const grp = friendGroups.get(groupId);
     if (!me || !grp) return;
+    const coords = coordsForSpot(grp.spot);
 
     me.driverId = null;
-    moveDriverAndPassengers(socket.id, grp.spot);
+    me.spot = grp.spot;
+    me.pinnedSpot = grp.spot;
+    me.x = coords.x;
+    me.y = coords.y;
     me.currentMeal = grp.meal;
     me.groupId = groupId;
     socket.join(groupId);
+    syncPassengersToDriver(socket.id);
 
     if (!grp.members.some((m) => m.id === socket.id)) {
       grp.members.push({ id: socket.id, name: me.name, avatarUrl: me.avatarUrl });
@@ -545,7 +518,7 @@ io.on("connection", (socket) => {
     if (!me || !groupId || !text) return;
     io.to(groupId).emit("groupMessage", {
       fromName: me.name,
-      text: String(text).slice(0, 400),
+      text: String(text).slice(0, 300),
     });
   });
 
@@ -565,5 +538,5 @@ io.on("connection", (socket) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Heart Lounge City running at http://localhost:${PORT}`);
+  console.log(`Heart Lounge City game running at http://localhost:${PORT}`);
 });

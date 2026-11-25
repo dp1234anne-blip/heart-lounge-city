@@ -3,85 +3,75 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Heart Lounge City — Interactive City, Free Cars, Sunset Lake Cliffs & Match Chat</title>
+  <title>Heart Lounge City — Playable Driving & Social Game</title>
   <script src="/socket.io/socket.io.js"></script>
   <style>
     :root {
-      --bg: #0b1120;
-      --panel: #162033;
-      --card: #1f2d47;
+      --bg: #090d16;
+      --panel: #131c2e;
+      --card: #1c2942;
       --accent: #f97316;
       --accent2: #38bdf8;
       --text: #f8fafc;
       --muted: #cbd5e1;
-      --border: #334155;
+      --border: #2e3f5e;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: "Segoe UI", system-ui, sans-serif; }
-    body { background: var(--bg); color: var(--text); min-height: 100vh; padding: 14px; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; padding: 12px; }
     .topbar {
-      max-width: 1260px; margin: 0 auto 14px; background: var(--panel); border: 1px solid var(--border);
-      border-radius: 14px; padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
+      max-width: 1320px; margin: 0 auto 12px; background: var(--panel); border: 1px solid var(--border);
+      border-radius: 14px; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
     }
-    .logo { font-size: 1.25rem; font-weight: 800; color: #fb923c; }
-    .free-pill { background: #14532d; color: #86efac; padding: 5px 12px; border-radius: 999px; font-size: 0.82rem; font-weight: 700; }
-    .container { max-width: 1260px; margin: 0 auto; }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .grid-main { display: grid; grid-template-columns: 1.38fr 1fr; gap: 16px; }
-    @media (max-width: 940px) { .grid-2, .grid-main { grid-template-columns: 1fr; } }
-    .box { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 14px; }
-    h2 { font-size: 1.03rem; color: #fdba74; margin-bottom: 10px; }
-    label { display: block; font-size: 0.82rem; color: var(--muted); margin: 8px 0 4px; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fb923c; }
+    .free-pill { background: #14532d; color: #86efac; padding: 5px 12px; border-radius: 999px; font-size: 0.8rem; font-weight: 700; }
+    .container { max-width: 1320px; margin: 0 auto; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .game-layout { display: grid; grid-template-columns: 1.55fr 1fr; gap: 14px; }
+    @media (max-width: 980px) { .grid-2, .game-layout { grid-template-columns: 1fr; } }
+    .box { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+    h2 { font-size: 1rem; color: #fdba74; margin-bottom: 8px; }
+    label { display: block; font-size: 0.8rem; color: var(--muted); margin: 7px 0 3px; }
     input, select, button {
-      width: 100%; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--border);
-      background: var(--card); color: var(--text); font-size: 0.9rem;
+      width: 100%; padding: 8px 11px; border-radius: 9px; border: 1px solid var(--border);
+      background: var(--card); color: var(--text); font-size: 0.88rem;
     }
-    button { cursor: pointer; font-weight: 700; margin-top: 8px; }
+    button { cursor: pointer; font-weight: 700; margin-top: 6px; }
     .btn-sunset { background: linear-gradient(135deg, #f97316, #db2777); border: none; color: #fff; }
     .btn-lake { background: #0284c7; border: none; color: #fff; }
     .btn-green { background: #15803d; border: none; color: #fff; }
     .btn-amber { background: #b45309; border: none; color: #fff; }
-    #selfiePreview { width: 130px; height: 130px; object-fit: cover; border-radius: 14px; border: 2px solid var(--accent); display: none; margin-top: 10px; }
-    video#cam { width: 100%; max-height: 190px; border-radius: 12px; display: none; margin-top: 8px; }
+    #selfiePreview { width: 120px; height: 120px; object-fit: cover; border-radius: 12px; border: 2px solid var(--accent); display: none; margin-top: 8px; }
+    video#cam { width: 100%; max-height: 180px; border-radius: 10px; display: none; margin-top: 6px; }
 
-    .scenic-banner {
-      border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; border: 1px solid #fb923c;
-      background: linear-gradient(135deg, #1e1b4b 0%, #9a3412 45%, #be185d 72%, #0369a1 100%);
-      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
-    }
-    .scenic-title { font-size: 1.15rem; font-weight: 800; color: #fff; }
-    .scenic-sub { font-size: 0.85rem; color: #fef3c7; margin-top: 3px; }
+    #gameScreen { width: 100%; height: 440px; border-radius: 12px; border: 2px solid #fb923c; background: #0c1322; display: block; }
+    .hud-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; font-size: 0.84rem; color: #fde68a; }
+    .pad-grid { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .dpad { display: flex; gap: 6px; align-items: center; }
+    .pad-btn { width: 46px; height: 38px; margin-top: 0; padding: 0; font-size: 1rem; }
 
-    #cityCanvas {
-      width: 100%; height: 270px; border-radius: 12px; border: 1px solid #475569;
-      background: #0f172a; cursor: pointer; display: block;
-    }
-    .mood-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-    .mood-btn { width: auto; margin-top: 0; padding: 5px 10px; font-size: 0.78rem; }
-
-    .players-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(235px, 1fr)); gap: 12px; }
-    .player-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 12px; text-align: center; }
-    .player-card img { width: 100%; height: 200px; object-fit: cover; border-radius: 10px; border: 2px solid #fb923c; }
+    .players-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+    .player-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px; text-align: center; }
+    .player-card img { width: 100%; height: 175px; object-fit: cover; border-radius: 9px; border: 2px solid #fb923c; }
     .avatar-speech {
-      background: #fef3c7; color: #1e1b4b; font-weight: 700; font-size: 0.82rem;
-      padding: 7px 10px; border-radius: 12px; margin-top: 8px; border: 2px solid #fb923c;
-      text-align: left; word-break: break-word;
+      background: #fef3c7; color: #1e1b4b; font-weight: 700; font-size: 0.8rem;
+      padding: 6px 9px; border-radius: 10px; margin-top: 6px; border: 2px solid #fb923c; text-align: left;
     }
-    .tag { display: inline-block; background: #162033; color: #fde68a; font-size: 0.74rem; padding: 3px 8px; border-radius: 999px; margin: 3px 2px; border: 1px solid #475569; }
-    .chat-box { height: 185px; overflow-y: auto; background: #0b1120; border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin-bottom: 8px; font-size: 0.87rem; }
-    .group-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px; margin-bottom: 8px; }
+    .tag { display: inline-block; background: #131c2e; color: #fde68a; font-size: 0.72rem; padding: 2px 7px; border-radius: 999px; margin: 2px; border: 1px solid #475569; }
+    .chat-box { height: 155px; overflow-y: auto; background: #090d16; border: 1px solid var(--border); border-radius: 9px; padding: 8px; margin-bottom: 6px; font-size: 0.84rem; }
+    .group-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 9px; margin-bottom: 7px; }
   </style>
 </head>
 <body>
   <div class="topbar">
-    <div class="logo">Heart Lounge City — Live City Map, Free Cars, Lake Cliffs & Match Chat</div>
-    <div class="free-pill">100% Free Forever • Unlimited Cars, Meals & Access (∞)</div>
+    <div class="logo">Heart Lounge City — Playable Car & Cliff Social Game</div>
+    <div class="free-pill">100% Free Game • All Cars, Meals & Access Unlocked (∞)</div>
   </div>
 
   <div class="container">
     <div id="onboardingView" class="grid-2">
       <div class="box">
-        <h2>1. Create Your Profile & Match Preference</h2>
-        <label>Your Name</label>
+        <h2>1. Create Your Player & Match Filter</h2>
+        <label>Player Name</label>
         <input id="nameInput" placeholder="e.g. Perez" />
 
         <label>Your Gender</label>
@@ -90,14 +80,14 @@
           <option value="Female">Female</option>
         </select>
 
-        <label>Who Do You Want to Meet & Match With?</label>
+        <label>Match Preference</label>
         <select id="lookingInput">
           <option value="Female">Female</option>
           <option value="Male">Male</option>
-          <option value="Everyone">Everyone (Open Matches)</option>
+          <option value="Everyone">Everyone</option>
         </select>
 
-        <label>Pin Your Favorite Hangout Spot</label>
+        <label>Pin Your Starting Spot</label>
         <select id="vibeInput">
           <option value="Sunset Cliffs Overlooking the Lake">📌 Sunset Cliffs Overlooking the Lake</option>
           <option value="Downtown City Plaza">📌 Downtown City Plaza</option>
@@ -106,133 +96,120 @@
           <option value="Skyline Rooftop Lounge">📌 Skyline Rooftop Lounge</option>
         </select>
 
-        <label>Your Interests & Hobbies</label>
-        <input id="hobbyInput" placeholder="e.g. Sunset drives, Lake views, Nyama Choma, Music" />
+        <label>Interests</label>
+        <input id="hobbyInput" placeholder="e.g. Sunset drives, Lake views, Nyama Choma" />
 
         <label>Character Portrait Style</label>
         <select id="styleInput">
           <option value="Anime & Lifelike Blend Portrait">Anime & Lifelike Blend Portrait</option>
-          <option value="Lifelike Golden Hour City Portrait">Lifelike Golden Hour City Portrait (Real Person)</option>
+          <option value="Lifelike Golden Hour City Portrait">Lifelike Golden Hour City Portrait</option>
           <option value="Natural Lakeside Sunset Photography">Natural Lakeside Sunset Photography</option>
         </select>
       </div>
 
       <div class="box">
-        <h2>2. AI Selfie Verification (Real People Only)</h2>
-        <p style="font-size:0.85rem;color:var(--muted);margin-bottom:8px;">
-          Upload a clear photo or snap a selfie. AI verifies you are a real person and creates your character.
+        <h2>2. AI Selfie Verification & Enter Game</h2>
+        <p style="font-size:0.83rem;color:var(--muted);margin-bottom:6px;">
+          Upload a clear photo or snap a selfie to verify you are a real person and start playing.
         </p>
         <input type="file" id="photoFileInput" accept="image/*" />
-        <button type="button" id="openCamBtn" class="btn-lake">Open Camera for Selfie</button>
+        <button type="button" id="openCamBtn" class="btn-lake">Open Camera</button>
         <video id="cam" autoplay muted playsinline></video>
         <button type="button" id="snapBtn" style="display:none;">Snap Selfie</button>
         <img id="selfiePreview" alt="Selfie preview" />
 
-        <button type="button" id="joinBtn" class="btn-sunset">Verify Selfie & Enter the City</button>
-        <p id="statusText" style="margin-top:10px;font-size:0.86rem;color:#fde68a;"></p>
+        <button type="button" id="joinBtn" class="btn-sunset">Play Heart Lounge City ▶</button>
+        <p id="statusText" style="margin-top:8px;font-size:0.84rem;color:#fde68a;"></p>
       </div>
     </div>
 
     <div id="worldView" style="display:none;">
-      <div class="scenic-banner">
-        <div>
-          <div class="scenic-title" id="currentSpotTitle">📌 Pinned: Sunset Cliffs Overlooking the Lake</div>
-          <div class="scenic-sub" id="currentStatusSub">Car: Midnight Roadster Convertible • Meal: Iced Caramel Latte</div>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;min-width:340px;">
-          <select id="spotSwitcher" style="width:auto;flex:1;">
-            <option value="Sunset Cliffs Overlooking the Lake">Sunset Cliffs Overlooking the Lake</option>
-            <option value="Downtown City Plaza">Downtown City Plaza</option>
-            <option value="Lakeside Marina & Promenade">Lakeside Marina & Promenade</option>
-            <option value="Lakeside Terrace Restaurant">Lakeside Terrace Restaurant</option>
-            <option value="Skyline Rooftop Lounge">Skyline Rooftop Lounge</option>
-          </select>
-          <button id="pinSpotBtn" class="btn-sunset" style="width:auto;margin-top:0;">📌 Pin Spot</button>
-          <button id="moveSpotBtn" class="btn-lake" style="width:auto;margin-top:0;">Drive Here</button>
-          <button id="dropOffBtn" class="btn-amber" style="width:auto;margin-top:0;">Hop Out</button>
-        </div>
-      </div>
-
-      <div class="grid-main">
+      <div class="game-layout">
         <div>
           <div class="box">
-            <h2>Interactive City & Sunset Lake Cliffs Map (Click Map to Cruise or Use Arrow Keys)</h2>
-            <canvas id="cityCanvas" width="720" height="270"></canvas>
-            <div class="mood-row">
-              <button class="mood-btn" onclick="setMood('✨ Ready to Cruise')">✨ Ready to Cruise</button>
-              <button class="mood-btn" onclick="setMood('🌅 Watching Sunset')">🌅 Watching Sunset</button>
-              <button class="mood-btn" onclick="setMood('🍽️ Hungry & Social')">🍽️ Hungry & Social</button>
-              <button class="mood-btn" onclick="setMood('🎶 Good Vibes')">🎶 Good Vibes</button>
+            <div class="hud-bar">
+              <span id="hudSpot">📌 Pinned: Sunset Cliffs Overlooking the Lake</span>
+              <span id="hudCar">🚘 Midnight Roadster Convertible (Sports)</span>
+              <span id="hudMeal">🍽️ Iced Caramel Latte</span>
+            </div>
+            <canvas id="gameScreen" width="900" height="440"></canvas>
+
+            <div class="pad-grid">
+              <div class="dpad">
+                <button class="pad-btn" id="btnUp">▲</button>
+                <button class="pad-btn" id="btnDown">▼</button>
+                <button class="pad-btn" id="btnLeft">◀</button>
+                <button class="pad-btn" id="btnRight">▶</button>
+                <button class="btn-green" style="width:auto;margin-top:0;padding:8px 12px;" id="btnNearbyPickup">Pick Up Nearby (E) 🚘</button>
+                <button class="btn-amber" style="width:auto;margin-top:0;padding:8px 10px;" id="dropOffBtn">Hop Out</button>
+              </div>
+
+              <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                <select id="spotSwitcher" style="width:auto;">
+                  <option value="Sunset Cliffs Overlooking the Lake">Sunset Cliffs & Lake</option>
+                  <option value="Downtown City Plaza">Downtown City Plaza</option>
+                  <option value="Lakeside Marina & Promenade">Lakeside Marina</option>
+                  <option value="Lakeside Terrace Restaurant">Lakeside Dining</option>
+                  <option value="Skyline Rooftop Lounge">Skyline Rooftop</option>
+                </select>
+                <button id="pinSpotBtn" class="btn-sunset" style="width:auto;margin-top:0;padding:8px 12px;">📌 Pin & Warp</button>
+              </div>
             </div>
           </div>
 
           <div class="box">
-            <h2>Matching Players (Live Chats Appear on Character Cards for Matches Only)</h2>
+            <h2>Matches in Game (Match-Only Card Chat & Pickups)</h2>
             <div id="playersGrid" class="players-grid"></div>
           </div>
-
-          <div class="box">
-            <h2>Group of Friends Meetup, Car Cruise & Free Meal Table</h2>
-            <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:10px;">
-              <input id="newGroupName" placeholder="Group name (e.g. Sunset Cliffs Crew)" />
-              <select id="groupMealSelect">
-                <option value="Nyama Choma & Lake Tilapia Platter">Nyama Choma & Lake Tilapia Platter (Free)</option>
-                <option value="Wood-Fired Pizza & Fresh Juice">Wood-Fired Pizza & Fresh Juice (Free)</option>
-                <option value="Coastal Pilau & Mango Smoothie">Coastal Pilau & Mango Smoothie (Free)</option>
-                <option value="Grilled Steak, Fries & Milkshakes">Grilled Steak, Fries & Milkshakes (Free)</option>
-                <option value="Sunset Coffee & Strawberry Cheesecake">Sunset Coffee & Cheesecake (Free)</option>
-              </select>
-              <button id="createGroupBtn" class="btn-green" style="margin-top:0;">Start Group</button>
-            </div>
-            <div id="groupsList"></div>
-          </div>
         </div>
 
         <div>
           <div class="box">
-            <h2 id="matchChatHeader">Match-Only Chat (Visible Only to You & Matching Player)</h2>
+            <h2 id="matchChatHeader">Match-Only Bubble Chat (Only You & Match See This)</h2>
             <div id="matchChatBox" class="chat-box"></div>
-            <div style="display:flex;gap:8px;">
-              <input id="matchChatInput" placeholder="Select a matching player to chat privately..." disabled />
+            <div style="display:flex;gap:6px;">
+              <input id="matchChatInput" placeholder="Select a match to chat (shows in game & card)..." disabled />
               <button id="sendMatchChatBtn" class="btn-sunset" style="width:auto;margin-top:0;" disabled>Send</button>
             </div>
           </div>
 
           <div class="box">
-            <h2>Infinite Free City Garage — Access Any Car (∞)</h2>
-            <div style="display:flex;gap:8px;">
+            <h2>Free City Garage — Switch Any Car (∞)</h2>
+            <div style="display:flex;gap:6px;">
               <select id="carSelect">
-                <option value="Midnight Roadster Convertible (Sports)">🏎️ Midnight Roadster Convertible (Sports)</option>
-                <option value="Executive Range Rover Autobiography (4x4 SUV)">🚙 Executive Range Rover Autobiography (4x4 SUV)</option>
-                <option value="Mercedes-Maybach S-Class (Luxury Sedan)">🚘 Mercedes-Maybach S-Class (Luxury Sedan)</option>
-                <option value="Toyota Land Cruiser V8 (Cliff & Safari 4x4)">🛻 Toyota Land Cruiser V8 (Cliff & Safari 4x4)</option>
-                <option value="1967 Classic Mustang Drop-Top (Vintage)">🚗 1967 Classic Mustang Drop-Top (Vintage)</option>
-                <option value="VIP Party Sprinter Van (Group Cruiser)">🚐 VIP Party Sprinter Van (Group Cruiser)</option>
-                <option value="Electric Cyber Hypercar (Supercar)">⚡ Electric Cyber Hypercar (Supercar)</option>
+                <option value="Midnight Roadster Convertible (Sports)">🏎️ Midnight Roadster (Sports)</option>
+                <option value="Executive Range Rover Autobiography (4x4 SUV)">🚙 Range Rover 4x4 SUV</option>
+                <option value="Mercedes-Maybach S-Class (Luxury Sedan)">🚘 Maybach Luxury Sedan</option>
+                <option value="Toyota Land Cruiser V8 (Cliff & Safari 4x4)">🛻 Land Cruiser V8 Cliff 4x4</option>
+                <option value="1967 Classic Mustang Drop-Top (Vintage)">🚗 1967 Classic Mustang</option>
+                <option value="VIP Party Sprinter Van (Group Cruiser)">🚐 VIP Party Sprinter Van</option>
+                <option value="Electric Cyber Hypercar (Supercar)">⚡ Electric Hypercar</option>
               </select>
-              <button id="takeCarBtn" class="btn-sunset" style="width:auto;margin-top:0;">Drive Car (Free)</button>
+              <button id="takeCarBtn" class="btn-sunset" style="width:auto;margin-top:0;">Drive</button>
             </div>
           </div>
 
           <div class="box">
-            <h2>Take Any Meal of Your Choice (100% Free ∞)</h2>
-            <div style="display:flex;gap:8px;">
+            <h2>Free Meals & Friend Groups (∞)</h2>
+            <div style="display:flex;gap:6px;margin-bottom:8px;">
               <select id="personalMealSelect">
-                <option value="Grilled Tilapia & Ugali by the Lake">Grilled Tilapia & Ugali by the Lake (Free)</option>
-                <option value="Nyama Choma & Kachumbari Feast">Nyama Choma & Kachumbari Feast (Free)</option>
-                <option value="Chicken Biryani & Passion Juice">Chicken Biryani & Passion Juice (Free)</option>
-                <option value="Cheeseburger, Loaded Fries & Shake">Cheeseburger, Loaded Fries & Shake (Free)</option>
-                <option value="Caramel Iced Coffee & Croissants">Caramel Iced Coffee & Croissants (Free)</option>
+                <option value="Grilled Tilapia & Ugali by the Lake">Grilled Tilapia & Ugali (Free)</option>
+                <option value="Nyama Choma & Kachumbari Feast">Nyama Choma Feast (Free)</option>
+                <option value="Chicken Biryani & Passion Juice">Chicken Biryani (Free)</option>
+                <option value="Cheeseburger, Fries & Shake">Burger, Fries & Shake (Free)</option>
               </select>
-              <button id="takeMealBtn" class="btn-green" style="width:auto;margin-top:0;">Take Meal</button>
+              <button id="takeMealBtn" class="btn-green" style="width:auto;margin-top:0;">Eat Free</button>
             </div>
-          </div>
 
-          <div class="box">
-            <h2 id="groupChatHeader">Friend Group Table & Cruise Chat</h2>
-            <div id="groupChatBox" class="chat-box"></div>
-            <div style="display:flex;gap:8px;">
-              <input id="groupChatInput" placeholder="Join or start a friend group to chat..." disabled />
+            <div style="display:flex;gap:6px;margin-bottom:6px;">
+              <input id="newGroupName" placeholder="Friend group name..." />
+              <button id="createGroupBtn" class="btn-lake" style="width:auto;margin-top:0;">New Crew</button>
+            </div>
+            <div id="groupsList"></div>
+
+            <div id="groupChatBox" class="chat-box" style="height:105px;margin-top:6px;"></div>
+            <div style="display:flex;gap:6px;">
+              <input id="groupChatInput" placeholder="Group chat..." disabled />
               <button id="sendGroupBtn" class="btn-lake" style="width:auto;margin-top:0;" disabled>Send</button>
             </div>
           </div>
@@ -250,14 +227,17 @@
     let activeGroupId = null;
     let latestPlayers = [];
     let latestGroups = [];
-    const cardSpeechByPlayerId = new Map();
+    const bubbleByPlayerId = new Map();
+    const keysDown = new Set();
 
     const selfiePreview = document.getElementById("selfiePreview");
     const statusText = document.getElementById("statusText");
     const camVideo = document.getElementById("cam");
     const snapBtn = document.getElementById("snapBtn");
-    const canvas = document.getElementById("cityCanvas");
+    const canvas = document.getElementById("gameScreen");
     const ctx = canvas.getContext("2d");
+
+    const localCar = { x: 220, y: 210, angle: 0, speed: 0 };
 
     document.getElementById("photoFileInput").addEventListener("change", (e) => {
       const file = e.target.files[0];
@@ -296,13 +276,13 @@
     };
 
     document.getElementById("joinBtn").onclick = async () => {
-      const name = document.getElementById("nameInput").value.trim() || "Player";
+      const name = document.getElementById("nameInput").value.trim() || "Perez";
       if (!selfieBase64) {
         statusText.textContent = "Please upload or snap a real selfie first.";
         return;
       }
       const pinnedSpot = document.getElementById("vibeInput").value;
-      statusText.textContent = "AI is verifying your photo & generating your character...";
+      statusText.textContent = "Verifying selfie & loading game world...";
       try {
         const res = await fetch("/api/verify-and-create", {
           method: "POST",
@@ -323,6 +303,9 @@
           return;
         }
         myProfile = { ...data.profile, pinnedSpot, spot: pinnedSpot };
+        localCar.x = myProfile.x || 220;
+        localCar.y = myProfile.y || 210;
+        localCar.angle = myProfile.angle || 0;
         document.getElementById("onboardingView").style.display = "none";
         document.getElementById("worldView").style.display = "block";
         socket.emit("joinLounge", myProfile);
@@ -331,115 +314,200 @@
       }
     };
 
-    function setMood(mood) {
-      socket.emit("setMood", { mood });
+    function pickUpNearestPlayer() {
+      const others = latestPlayers.filter((p) => p.id !== socket.id);
+      if (others.length === 0) return;
+      others.sort((a, b) => Math.hypot(a.x - localCar.x, a.y - localCar.y) - Math.hypot(b.x - localCar.x, b.y - localCar.y));
+      socket.emit("pickUpPerson", { targetId: others[0].id });
     }
 
+    document.getElementById("btnNearbyPickup").onclick = pickUpNearestPlayer;
+    document.getElementById("dropOffBtn").onclick = () => socket.emit("dropOffRide");
     document.getElementById("pinSpotBtn").onclick = () => {
-      socket.emit("pinLocation", { spot: document.getElementById("spotSwitcher").value });
+      const spot = document.getElementById("spotSwitcher").value;
+      socket.emit("pinLocation", { spot });
     };
-
-    document.getElementById("moveSpotBtn").onclick = () => {
-      socket.emit("changeSpot", { spot: document.getElementById("spotSwitcher").value });
-    };
-
-    document.getElementById("dropOffBtn").onclick = () => {
-      socket.emit("dropOffRide");
-    };
-
     document.getElementById("takeCarBtn").onclick = () => {
       socket.emit("selectFreeCar", { car: document.getElementById("carSelect").value });
     };
-
     document.getElementById("takeMealBtn").onclick = () => {
       socket.emit("orderFreeMeal", { meal: document.getElementById("personalMealSelect").value });
     };
-
     document.getElementById("createGroupBtn").onclick = () => {
-      const groupName = document.getElementById("newGroupName").value.trim() || `${myProfile.name}'s City & Lake Crew`;
-      const meal = document.getElementById("groupMealSelect").value;
+      const groupName = document.getElementById("newGroupName").value.trim() || `${myProfile.name}'s Crew`;
       const spot = document.getElementById("spotSwitcher").value;
+      const meal = document.getElementById("personalMealSelect").value;
       socket.emit("createFriendGroup", { groupName, spot, meal });
     };
 
-    canvas.addEventListener("click", (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-      const x = Math.round((e.clientX - rect.left) * scaleX);
-      const y = Math.round((e.clientY - rect.top) * scaleY);
-      socket.emit("moveCoords", { x, y });
-    });
+    // On-screen D-pad hold support
+    function bindHoldButton(id, keyName) {
+      const btn = document.getElementById(id);
+      btn.onmousedown = () => keysDown.add(keyName);
+      btn.onmouseup = () => keysDown.delete(keyName);
+      btn.onmouseleave = () => keysDown.delete(keyName);
+      btn.ontouchstart = (e) => { e.preventDefault(); keysDown.add(keyName); };
+      btn.ontouchend = () => keysDown.delete(keyName);
+    }
+    bindHoldButton("btnUp", "ArrowUp");
+    bindHoldButton("btnDown", "ArrowDown");
+    bindHoldButton("btnLeft", "ArrowLeft");
+    bindHoldButton("btnRight", "ArrowRight");
 
     window.addEventListener("keydown", (e) => {
       if (document.getElementById("worldView").style.display === "none") return;
       if (["INPUT", "SELECT", "TEXTAREA"].includes(document.activeElement.tagName)) return;
-      const me = latestPlayers.find((p) => p.id === socket.id);
-      if (!me) return;
-      const step = 18;
-      let nx = me.x || 320;
-      let ny = me.y || 145;
-      if (e.key === "ArrowLeft" || e.key === "a") nx -= step;
-      else if (e.key === "ArrowRight" || e.key === "d") nx += step;
-      else if (e.key === "ArrowUp" || e.key === "w") ny -= step;
-      else if (e.key === "ArrowDown" || e.key === "s") ny += step;
-      else return;
-      e.preventDefault();
-      socket.emit("moveCoords", { x: nx, y: ny });
+      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "w", "a", "s", "d"].includes(e.key)) {
+        e.preventDefault();
+        keysDown.add(e.key);
+      }
+      if (e.key.toLowerCase() === "e") {
+        pickUpNearestPlayer();
+      }
     });
 
-    function drawCityMap() {
+    window.addEventListener("keyup", (e) => {
+      keysDown.delete(e.key);
+    });
+
+    let lastSentTime = 0;
+    function gameTick(now) {
+      if (document.getElementById("worldView").style.display !== "none" && myProfile) {
+        const up = keysDown.has("ArrowUp") || keysDown.has("w");
+        const down = keysDown.has("ArrowDown") || keysDown.has("s");
+        const left = keysDown.has("ArrowLeft") || keysDown.has("a");
+        const right = keysDown.has("ArrowRight") || keysDown.has("d");
+
+        const turnSpeed = 0.065;
+        const accel = 0.24;
+        if (left) localCar.angle -= turnSpeed;
+        if (right) localCar.angle += turnSpeed;
+        if (up) localCar.speed = Math.min(5.2, localCar.speed + accel);
+        else if (down) localCar.speed = Math.max(-3.0, localCar.speed - accel);
+        else localCar.speed *= 0.9;
+
+        const nextX = Math.max(35, Math.min(865, localCar.x + Math.cos(localCar.angle) * localCar.speed));
+        const nextY = Math.max(35, Math.min(405, localCar.y + Math.sin(localCar.angle) * localCar.speed));
+        const moved = Math.hypot(nextX - localCar.x, nextY - localCar.y) > 0.2 || Math.abs(localCar.speed) > 0.1;
+
+        localCar.x = nextX;
+        localCar.y = nextY;
+
+        if (moved && now - lastSentTime > 70) {
+          lastSentTime = now;
+          const spotName = localCar.x > 560 ? "Sunset Cliffs Overlooking the Lake" : "Downtown City Plaza";
+          socket.emit("playerTransform", { x: localCar.x, y: localCar.y, angle: localCar.angle, spot: spotName });
+        }
+      }
+
+      renderGameCanvas(now);
+      requestAnimationFrame(gameTick);
+    }
+
+    function renderGameCanvas(now) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      const skyGrad = ctx.createLinearGradient(430, 0, canvas.width, canvas.height);
-      skyGrad.addColorStop(0, "#7c2d12");
-      skyGrad.addColorStop(0.5, "#be185d");
-      skyGrad.addColorStop(1, "#0369a1");
-      ctx.fillStyle = skyGrad;
-      ctx.fillRect(430, 0, 290, canvas.height);
+      // Sunset Lake & Cliff terrain on right half
+      const lakeGrad = ctx.createLinearGradient(540, 0, canvas.width, canvas.height);
+      lakeGrad.addColorStop(0, "#7c2d12");
+      lakeGrad.addColorStop(0.38, "#db2777");
+      lakeGrad.addColorStop(0.45, "#0284c7");
+      lakeGrad.addColorStop(1, "#0f172a");
+      ctx.fillStyle = lakeGrad;
+      ctx.fillRect(540, 0, 360, canvas.height);
 
+      // Animated lake shimmer
+      ctx.strokeStyle = "rgba(186, 230, 253, 0.35)";
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 6; i++) {
+        const wy = 210 + i * 34 + Math.sin(now / 500 + i) * 4;
+        ctx.beginPath();
+        ctx.moveTo(590, wy);
+        ctx.lineTo(840, wy);
+        ctx.stroke();
+      }
+
+      // City road network
       ctx.strokeStyle = "#334155";
-      ctx.lineWidth = 10;
+      ctx.lineWidth = 22;
       ctx.beginPath();
-      ctx.moveTo(40, 140);
-      ctx.lineTo(680, 140);
-      ctx.moveTo(240, 30);
-      ctx.lineTo(240, 240);
-      ctx.moveTo(520, 30);
-      ctx.lineTo(520, 240);
+      ctx.moveTo(60, 210);
+      ctx.lineTo(830, 210);
+      ctx.moveTo(270, 50);
+      ctx.lineTo(270, 390);
+      ctx.moveTo(540, 50);
+      ctx.lineTo(540, 390);
       ctx.stroke();
 
+      ctx.strokeStyle = "#facc15";
+      ctx.setLineDash([12, 10]);
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(60, 210);
+      ctx.lineTo(830, 210);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Landmarks
       ctx.fillStyle = "#f8fafc";
       ctx.font = "bold 12px Segoe UI";
-      ctx.fillText("🏙️ Downtown Plaza", 55, 122);
-      ctx.fillText("🌃 Skyline Rooftop", 170, 52);
-      ctx.fillText("🍽️ Lakeside Dining", 285, 226);
-      ctx.fillText("🌅 Sunset Cliffs & Lake", 535, 42);
-      ctx.fillText("⛵ Marina Pier", 535, 242);
+      ctx.fillText("🏙️ Downtown Plaza", 75, 185);
+      ctx.fillText("🌃 Skyline Rooftop", 190, 68);
+      ctx.fillText("🍽️ Lakeside Dining", 340, 375);
+      ctx.fillText("🌅 Sunset Cliffs & Lake", 610, 68);
+      ctx.fillText("⛵ Lakeside Marina", 610, 385);
 
+      // Draw all players' cars & match-only speech bubbles
       latestPlayers.forEach((p) => {
-        const px = p.x || 200;
-        const py = p.y || 140;
         const isMe = p.id === socket.id;
+        const px = isMe ? localCar.x : (p.x ?? 220);
+        const py = isMe ? localCar.y : (p.y ?? 210);
+        const ang = isMe ? localCar.angle : (p.angle ?? 0);
 
-        ctx.beginPath();
-        ctx.arc(px, py, isMe ? 12 : 9, 0, Math.PI * 2);
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.rotate(ang);
         ctx.fillStyle = isMe ? "#fb923c" : "#38bdf8";
-        ctx.fill();
-        ctx.lineWidth = 2;
         ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(-18, -10, 36, 20, 6);
+        ctx.fill();
         ctx.stroke();
+        // Windshield
+        ctx.fillStyle = "#0f172a";
+        ctx.fillRect(-4, -7, 10, 14);
+        ctx.restore();
 
+        // Nameplate
         ctx.fillStyle = "#ffffff";
-        ctx.font = "bold 11px Segoe UI";
-        ctx.fillText(`${p.name} (${p.mood || "✨"})`, px - 26, py - 15);
+        ctx.font = "bold 12px Segoe UI";
+        ctx.fillText(`${p.name}${isMe ? " (You)" : ""}`, px - 26, py - 18);
+
+        // Match-only speech bubble right above car/avatar
+        const bubble = bubbleByPlayerId.get(p.id);
+        if (bubble) {
+          ctx.fillStyle = "#fef3c7";
+          ctx.strokeStyle = "#f97316";
+          ctx.lineWidth = 2;
+          const label = `💬 ${bubble.text.slice(0, 34)}`;
+          const w = Math.max(85, label.length * 6.5);
+          ctx.beginPath();
+          ctx.roundRect(px - w / 2, py - 46, w, 22, 8);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#1e1b4b";
+          ctx.font = "bold 11px Segoe UI";
+          ctx.fillText(label, px - w / 2 + 7, py - 31);
+        }
       });
     }
 
     function appendBox(boxId, sender, text) {
       const box = document.getElementById(boxId);
       const line = document.createElement("div");
-      line.style.marginBottom = "6px";
+      line.style.marginBottom = "5px";
       line.innerHTML = `<strong style="color:#fb923c;">${sender}:</strong> ${text}`;
       box.appendChild(line);
       box.scrollTop = box.scrollHeight;
@@ -447,30 +515,30 @@
 
     function selectMatchForChat(partnerId, partnerName) {
       selectedMatchId = partnerId;
-      document.getElementById("matchChatHeader").textContent = `💬 Private Match Chat with ${partnerName} (Only You Two See This)`;
+      document.getElementById("matchChatHeader").textContent = `💬 Private Match Chat with ${partnerName}`;
       const inp = document.getElementById("matchChatInput");
       const btn = document.getElementById("sendMatchChatBtn");
       inp.disabled = false;
       btn.disabled = false;
-      inp.placeholder = `Type a message to ${partnerName} (shows on your character card)...`;
+      inp.placeholder = `Message ${partnerName} (shows in game & card)...`;
     }
 
     socket.on("meetupUnlocked", ({ partnerId, partnerName, spot }) => {
       selectMatchForChat(partnerId, partnerName);
-      appendBox("matchChatBox", "Match", `Matched & met up with ${partnerName} at ${spot}! Only you two can see your messages.`);
-      renderPlayers();
+      appendBox("matchChatBox", "Match", `Matched with ${partnerName} at ${spot}! Only you two see your chats.`);
+      renderMatchCards();
     });
 
     socket.on("pickedUpInCar", ({ driverId, driverName, car, spot }) => {
       selectMatchForChat(driverId, driverName);
-      appendBox("matchChatBox", "Car Ride", `🚘 ${driverName} picked you up in a ${car} at ${spot}!`);
-      renderPlayers();
+      appendBox("matchChatBox", "Ride", `🚘 ${driverName} picked you up in a ${car} at ${spot}!`);
+      renderMatchCards();
     });
 
     socket.on("pickupConfirmed", ({ passengerId, passengerName, car, spot }) => {
       selectMatchForChat(passengerId, passengerName);
-      appendBox("matchChatBox", "Car Ride", `🚘 You picked up ${passengerName} in your ${car} at ${spot}!`);
-      renderPlayers();
+      appendBox("matchChatBox", "Ride", `🚘 You picked up ${passengerName} in your ${car} at ${spot}!`);
+      renderMatchCards();
     });
 
     document.getElementById("sendMatchChatBtn").onclick = () => {
@@ -486,27 +554,18 @@
 
     socket.on("matchBubbleMessage", ({ fromId, toId, fromName, text }) => {
       appendBox("matchChatBox", fromName, text);
-      cardSpeechByPlayerId.set(fromId, { fromName, text });
+      bubbleByPlayerId.set(fromId, { fromName, text });
       if (fromId !== socket.id) {
         selectMatchForChat(fromId, fromName);
       } else if (toId) {
-        const targetObj = latestPlayers.find((p) => p.id === toId);
-        if (targetObj) selectMatchForChat(toId, targetObj.name);
+        const target = latestPlayers.find((p) => p.id === toId);
+        if (target) selectMatchForChat(toId, target.name);
       }
-      renderPlayers();
+      renderMatchCards();
     });
 
-    socket.on("systemNotice", (msg) => {
-      appendBox("matchChatBox", "Notice", msg);
-    });
-
-    socket.on("groupEvent", ({ text }) => {
-      appendBox("groupChatBox", "Group", text);
-    });
-
-    socket.on("groupMessage", ({ fromName, text }) => {
-      appendBox("groupChatBox", fromName, text);
-    });
+    socket.on("groupEvent", ({ text }) => appendBox("groupChatBox", "Group", text));
+    socket.on("groupMessage", ({ fromName, text }) => appendBox("groupChatBox", fromName, text));
 
     document.getElementById("sendGroupBtn").onclick = () => {
       const inp = document.getElementById("groupChatInput");
@@ -523,79 +582,51 @@
       return explicitlyMatched || (myWantsOther && otherWantsMe);
     }
 
-    function renderPlayers() {
-      const byId = new Map(latestPlayers.map((p) => [p.id, p]));
+    function renderMatchCards() {
       const me = latestPlayers.find((p) => p.id === socket.id);
-
       if (me) {
-        const pinned = me.pinnedSpot || me.spot;
-        document.getElementById("currentSpotTitle").textContent = `📌 Pinned Spot: ${pinned}`;
-        document.getElementById("currentStatusSub").textContent = `Car: ${me.currentCar} • Meal: ${me.currentMeal} • ${me.mood || ""}`;
+        document.getElementById("hudSpot").textContent = `📌 Pinned: ${me.pinnedSpot || me.spot}`;
+        document.getElementById("hudCar").textContent = `🚘 ${me.currentCar}`;
+        document.getElementById("hudMeal").textContent = `🍽️ ${me.currentMeal}`;
         if (me.groupId) {
           activeGroupId = me.groupId;
           document.getElementById("groupChatInput").disabled = false;
           document.getElementById("sendGroupBtn").disabled = false;
-          document.getElementById("groupChatInput").placeholder = "Chat with your friend group...";
         }
       }
 
       const grid = document.getElementById("playersGrid");
       grid.innerHTML = "";
+      const visible = latestPlayers.filter((p) => p.id === socket.id || isMatchingPlayer(p));
 
-      const visiblePlayers = latestPlayers.filter((p) => p.id === socket.id || isMatchingPlayer(p));
-
-      visiblePlayers.forEach((p) => {
+      visible.forEach((p) => {
         const card = document.createElement("div");
         card.className = "player-card";
-        const riderInfo = p.driverId && byId.get(p.driverId) ? `Riding with ${byId.get(p.driverId).name}` : p.currentCar;
-        const speech = cardSpeechByPlayerId.get(p.id);
-        const speechHtml = speech
-          ? `<div class="avatar-speech">💬 "${speech.text}"</div>`
-          : `<div class="avatar-speech" style="opacity:0.55;">💬 No match chat yet</div>`;
-
+        const bubble = bubbleByPlayerId.get(p.id);
         card.innerHTML = `
           <img src="${p.avatarUrl}" alt="${p.name}" />
-          <div style="font-weight:800;margin-top:6px;">${p.name} (${p.gender}) ${p.id === socket.id ? "• You" : "• Match"}</div>
+          <div style="font-weight:800;margin-top:5px;">${p.name} ${p.id === socket.id ? "(You)" : "(Match)"}</div>
           <div class="tag">📌 ${p.pinnedSpot || p.spot}</div>
-          <div class="tag">🚘 ${riderInfo}</div>
-          <div class="tag">🍽️ ${p.currentMeal}</div>
-          <div style="font-size:0.78rem;color:var(--muted);margin-top:4px;">${p.hobby}</div>
-          ${speechHtml}
+          <div class="tag">🚘 ${p.currentCar}</div>
+          <div class="avatar-speech">${bubble ? `💬 "${bubble.text}"` : `💬 No match chat yet`}</div>
         `;
-
         if (p.id !== socket.id) {
-          const replyBtn = document.createElement("button");
-          replyBtn.className = "btn-sunset";
-          replyBtn.textContent = selectedMatchId === p.id ? "Replying to This Match ✓" : "Chat / Reply on Card 💬";
-          replyBtn.onclick = () => {
+          const chatBtn = document.createElement("button");
+          chatBtn.className = "btn-sunset";
+          chatBtn.textContent = "Chat / Reply 💬";
+          chatBtn.onclick = () => {
             socket.emit("meetUpWith", { targetId: p.id });
             selectMatchForChat(p.id, p.name);
             document.getElementById("matchChatInput").focus();
-            renderPlayers();
           };
-          card.appendChild(replyBtn);
+          card.appendChild(chatBtn);
 
           const pickupBtn = document.createElement("button");
           pickupBtn.className = "btn-green";
           pickupBtn.textContent = "Pick Up in Car 🚘";
           pickupBtn.onclick = () => socket.emit("pickUpPerson", { targetId: p.id });
           card.appendChild(pickupBtn);
-
-          const iceBtn = document.createElement("button");
-          iceBtn.className = "btn-lake";
-          iceBtn.textContent = "AI Icebreaker ✨";
-          iceBtn.onclick = async () => {
-            const r = await fetch("/api/icebreaker", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ me: myProfile, partner: p, spot: p.pinnedSpot || p.spot, car: myProfile?.currentCar, meal: p.currentMeal }),
-            });
-            const d = await r.json();
-            appendBox("matchChatBox", "AI Wingman", d.idea);
-          };
-          card.appendChild(iceBtn);
         }
-
         grid.appendChild(card);
       });
 
@@ -604,29 +635,29 @@
       latestGroups.forEach((g) => {
         const div = document.createElement("div");
         div.className = "group-card";
-        div.innerHTML = `
-          <strong>${g.name}</strong> — 📌 ${g.spot} • 🚘 ${g.car || "City Cruiser"} • 🍽️ ${g.meal}
-          <div style="font-size:0.8rem;color:var(--muted);margin:4px 0;">
-            Friends at table (${g.members.length}): ${g.members.map((m) => m.name).join(", ")}
-          </div>
-        `;
-        const joinGrpBtn = document.createElement("button");
-        joinGrpBtn.className = "btn-green";
-        joinGrpBtn.style.width = "auto";
-        joinGrpBtn.textContent = "Join Friend Group & Ride";
-        joinGrpBtn.onclick = () => socket.emit("joinFriendGroup", { groupId: g.id });
-        div.appendChild(joinGrpBtn);
+        div.innerHTML = `<strong>${g.name}</strong> • 📌 ${g.spot} • 🍽️ ${g.meal}`;
+        const joinBtn = document.createElement("button");
+        joinBtn.className = "btn-green";
+        joinBtn.textContent = "Join Group";
+        joinBtn.onclick = () => socket.emit("joinFriendGroup", { groupId: g.id });
+        div.appendChild(joinBtn);
         groupsList.appendChild(div);
       });
-
-      drawCityMap();
     }
 
-    socket.on("loungeUpdate", ({ players, groups }) => {
+    socket.on("gameState", ({ players, groups }) => {
       latestPlayers = players;
       latestGroups = groups;
-      renderPlayers();
+      const me = players.find((p) => p.id === socket.id);
+      if (me && me.driverId) {
+        localCar.x = me.x;
+        localCar.y = me.y;
+        localCar.angle = me.angle || 0;
+      }
+      renderMatchCards();
     });
+
+    requestAnimationFrame(gameTick);
   </script>
 </body>
 </html>
